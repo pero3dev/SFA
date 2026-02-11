@@ -1,6 +1,5 @@
 ﻿<script lang="ts">
   import { createQuery, useQueryClient } from "@tanstack/svelte-query";
-  import { get } from "svelte/store";
   import {
     createApproval,
     createIntegrationEvent,
@@ -34,9 +33,11 @@
   } from "$lib/api/schemas";
   import {
     approvalStatusLabel,
+    duplicateTypeLabel,
     getText,
     integrationStatusLabel,
     interpolate,
+    kpiMetricLabel,
     locale,
     lossReasonLabel,
     stageLabel,
@@ -206,7 +207,7 @@
       await decideApproval(id, { status, decisionNote: `UI decision: ${status}` });
       await refresh([["approvals"]]);
       notice = interpolate(t("notice_approval_updated"), {
-        status: approvalStatusLabel(get(locale), status)
+        status: approvalStatusLabel(lang, status)
       });
     } catch (error) {
       notice = `${t("notice_approval_update_failed")}: ${String(error)}`;
@@ -253,7 +254,7 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {#each $kpiQuery.data.data as item}
             <div class="glass-soft rounded-2xl p-4">
-              <p class="meta-label">{item.metricKey}</p>
+              <p class="meta-label">{kpiMetricLabel(lang, item.metricKey)}</p>
               <p class="kpi-value mt-2 text-cyan-100">{formatNumber(item.metricValue)}</p>
             </div>
           {/each}
@@ -372,7 +373,7 @@
         <ul class="space-y-2.5">
           {#each $duplicatesQuery.data.data as row}
             <li class="glass-soft rounded-2xl p-3.5 text-sm">
-              <p class="font-semibold text-slate-100">{row.type}</p>
+              <p class="font-semibold text-slate-100">{duplicateTypeLabel(lang, row.type)}</p>
               <p class="mt-1 break-all text-xs text-slate-300">{row.matchValue}</p>
             </li>
           {/each}

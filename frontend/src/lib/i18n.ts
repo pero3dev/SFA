@@ -3,6 +3,7 @@
 export type Locale = "ja" | "en";
 
 const STORAGE_KEY = "sfa.locale";
+const FALLBACK_STORAGE_KEYS = ["locale", "lang"] as const;
 
 export const locale = writable<Locale>("en");
 
@@ -217,6 +218,36 @@ const lossReasonLabels: Record<Locale, Record<string, string>> = {
   }
 };
 
+const kpiMetricLabels: Record<Locale, Record<string, string>> = {
+  en: {
+    open_pipeline_amount: "Open Pipeline Amount",
+    open_pipeline_count: "Open Pipeline Count",
+    won_amount_current_month: "Won Amount (Current Month)",
+    won_amount_current_quarter: "Won Amount (Current Quarter)",
+    average_deal_size: "Average Deal Size"
+  },
+  ja: {
+    open_pipeline_amount: "進行中パイプライン金額",
+    open_pipeline_count: "進行中パイプライン件数",
+    won_amount_current_month: "今月の受注金額",
+    won_amount_current_quarter: "今四半期の受注金額",
+    average_deal_size: "平均案件単価"
+  }
+};
+
+const duplicateTypeLabels: Record<Locale, Record<string, string>> = {
+  en: {
+    account_name: "Account Name",
+    account_domain: "Account Domain",
+    contact_email: "Contact Email"
+  },
+  ja: {
+    account_name: "アカウント名",
+    account_domain: "アカウントドメイン",
+    contact_email: "連絡先メール"
+  }
+};
+
 export function getText(lang: Locale, key: I18nKey): string {
   return messages[lang][key] ?? messages.en[key];
 }
@@ -237,22 +268,58 @@ export function lossReasonLabel(lang: Locale, value: string): string {
   return lossReasonLabels[lang][value] ?? value;
 }
 
+export function kpiMetricLabel(lang: Locale, value: string): string {
+  return kpiMetricLabels[lang][value] ?? value;
+}
+
+export function duplicateTypeLabel(lang: Locale, value: string): string {
+  return duplicateTypeLabels[lang][value] ?? value;
+}
+
+export function normalizeLocale(value: string | null | undefined): Locale | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "ja" || normalized === "jp" || normalized.startsWith("ja-") || normalized.startsWith("jp-")) {
+    return "ja";
+  }
+  if (normalized === "en" || normalized.startsWith("en-")) {
+    return "en";
+  }
+  return null;
+}
+
 export function detectLocale(): Locale {
   if (typeof window === "undefined") return "en";
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "ja" || stored === "en") return stored;
-  return window.navigator.language.toLowerCase().startsWith("ja") ? "ja" : "en";
+
+  const queryLang = normalizeLocale(new URLSearchParams(window.location.search).get("lang"));
+  if (queryLang) return queryLang;
+
+  const stored = normalizeLocale(window.localStorage.getItem(STORAGE_KEY));
+  if (stored) return stored;
+
+  for (const key of FALLBACK_STORAGE_KEYS) {
+    const fallback = normalizeLocale(window.localStorage.getItem(key));
+    if (fallback) return fallback;
+  }
+
+  return normalizeLocale(window.navigator.language) ?? "en";
 }
 
 export function initLocale(): void {
   if (typeof window === "undefined") return;
-  locale.set(detectLocale());
+  const detected = detectLocale();
+  locale.set(detected);
+  window.document.documentElement.lang = detected;
 }
 
-export function setLocale(next: Locale): void {
-  locale.set(next);
+export function setLocale(next: Locale | string): void {
+  const normalized = normalizeLocale(next) ?? "en";
+  locale.set(normalized);
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, next);
+    window.localStorage.setItem(STORAGE_KEY, normalized);
+    window.localStorage.setItem("locale", normalized);
+    window.localStorage.setItem("lang", normalized.toUpperCase());
+    window.document.documentElement.lang = normalized;
   }
 }
 
