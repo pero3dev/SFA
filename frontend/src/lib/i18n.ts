@@ -3,9 +3,9 @@
 export type Locale = "ja" | "en";
 
 const STORAGE_KEY = "sfa.locale";
-const FALLBACK_STORAGE_KEYS = ["locale", "lang"] as const;
+const STORAGE_KEYS_BY_PRIORITY = ["lang", STORAGE_KEY, "locale", "language", "i18n.locale"] as const;
 
-export const locale = writable<Locale>("en");
+export const locale = writable<Locale>("ja");
 
 export const messages = {
   en: {
@@ -294,13 +294,18 @@ export function detectLocale(): Locale {
   const queryLang = normalizeLocale(new URLSearchParams(window.location.search).get("lang"));
   if (queryLang) return queryLang;
 
-  const stored = normalizeLocale(window.localStorage.getItem(STORAGE_KEY));
-  if (stored) return stored;
-
-  for (const key of FALLBACK_STORAGE_KEYS) {
+  for (const key of STORAGE_KEYS_BY_PRIORITY) {
     const fallback = normalizeLocale(window.localStorage.getItem(key));
     if (fallback) return fallback;
   }
+
+  for (const key of STORAGE_KEYS_BY_PRIORITY) {
+    const fallback = normalizeLocale(window.sessionStorage.getItem(key));
+    if (fallback) return fallback;
+  }
+
+  const htmlLang = normalizeLocale(window.document.documentElement.lang);
+  if (htmlLang) return htmlLang;
 
   return normalizeLocale(window.navigator.language) ?? "en";
 }
@@ -318,7 +323,11 @@ export function setLocale(next: Locale | string): void {
   if (typeof window !== "undefined") {
     window.localStorage.setItem(STORAGE_KEY, normalized);
     window.localStorage.setItem("locale", normalized);
-    window.localStorage.setItem("lang", normalized.toUpperCase());
+    window.localStorage.setItem("lang", normalized === "ja" ? "JP" : "EN");
+    window.localStorage.setItem("language", normalized);
+    window.localStorage.setItem("i18n.locale", normalized);
+    window.sessionStorage.setItem("locale", normalized);
+    window.sessionStorage.setItem("lang", normalized === "ja" ? "JP" : "EN");
     window.document.documentElement.lang = normalized;
   }
 }
