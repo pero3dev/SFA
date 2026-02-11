@@ -1,5 +1,6 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { createQuery, useQueryClient } from "@tanstack/svelte-query";
+  import { get } from "svelte/store";
   import {
     createApproval,
     createIntegrationEvent,
@@ -31,6 +32,17 @@
     NextActionsResponse,
     PipelineResponse
   } from "$lib/api/schemas";
+  import {
+    approvalStatusLabel,
+    getText,
+    integrationStatusLabel,
+    interpolate,
+    locale,
+    lossReasonLabel,
+    stageLabel,
+    type I18nKey,
+    type Locale
+  } from "$lib/i18n";
 
   const queryClient = useQueryClient();
 
@@ -81,7 +93,15 @@
     refetchInterval: 30000
   });
 
+  let lang: Locale = "en";
   let notice = "";
+
+  $: lang = $locale;
+
+  const t = (key: I18nKey): string => getText(lang, key);
+  const localeTag = (): string => (lang === "ja" ? "ja-JP" : "en-US");
+  const formatNumber = (value: number): string => value.toLocaleString(localeTag());
+
   let nextActionForm = {
     id: "00000000-0000-0000-0000-000000000200",
     nextActionAt: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
@@ -129,9 +149,9 @@
         nextActionNote: nextActionForm.nextActionNote
       });
       await refresh([["opportunities", "next-actions"], ["analytics", "deal-health"]]);
-      notice = "Next action updated.";
+      notice = t("notice_next_action_updated");
     } catch (error) {
-      notice = `Failed to update next action: ${String(error)}`;
+      notice = `${t("notice_next_action_failed")}: ${String(error)}`;
     }
   }
 
@@ -143,12 +163,15 @@
         integrationType: integrationForm.integrationType,
         externalAccountId: integrationForm.externalAccountId,
         status: integrationForm.status,
-        scopes: integrationForm.scopes.split(",").map((s) => s.trim()).filter((s) => s.length > 0)
+        scopes: integrationForm.scopes
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
       });
       await refresh([["integrations", "connections"]]);
-      notice = "Integration settings saved.";
+      notice = t("notice_integration_saved");
     } catch (error) {
-      notice = `Failed to save integration settings: ${String(error)}`;
+      notice = `${t("notice_integration_failed")}: ${String(error)}`;
     }
   }
 
@@ -162,9 +185,9 @@
         payload: { source: "manual", createdBy: "dashboard-ui" }
       });
       await refresh([["integrations", "events"]]);
-      notice = "Integration event created.";
+      notice = t("notice_event_created");
     } catch (error) {
-      notice = `Failed to create integration event: ${String(error)}`;
+      notice = `${t("notice_event_failed")}: ${String(error)}`;
     }
   }
 
@@ -172,9 +195,9 @@
     try {
       await createApproval(approvalForm);
       await refresh([["approvals"]]);
-      notice = "Approval request created.";
+      notice = t("notice_approval_created");
     } catch (error) {
-      notice = `Failed to create approval request: ${String(error)}`;
+      notice = `${t("notice_approval_create_failed")}: ${String(error)}`;
     }
   }
 
@@ -182,9 +205,11 @@
     try {
       await decideApproval(id, { status, decisionNote: `UI decision: ${status}` });
       await refresh([["approvals"]]);
-      notice = `Approval updated to ${status}.`;
+      notice = interpolate(t("notice_approval_updated"), {
+        status: approvalStatusLabel(get(locale), status)
+      });
     } catch (error) {
-      notice = `Failed to update approval: ${String(error)}`;
+      notice = `${t("notice_approval_update_failed")}: ${String(error)}`;
     }
   }
 
@@ -192,10 +217,10 @@
     if (!accountsCsv) return;
     try {
       await uploadCSV("/import/accounts.csv", accountsCsv);
-      notice = "accounts.csv imported.";
+      notice = t("notice_import_accounts_done");
       await refresh([["analytics", "duplicates"]]);
     } catch (error) {
-      notice = `Failed to import accounts.csv: ${String(error)}`;
+      notice = `${t("notice_import_accounts_failed")}: ${String(error)}`;
     }
   }
 
@@ -203,10 +228,10 @@
     if (!opportunitiesCsv) return;
     try {
       await uploadCSV("/import/opportunities.csv", opportunitiesCsv);
-      notice = "opportunities.csv imported.";
+      notice = t("notice_import_opportunities_done");
       await refresh([["opportunities", "next-actions"], ["analytics", "forecast"], ["analytics", "deal-health"]]);
     } catch (error) {
-      notice = `Failed to import opportunities.csv: ${String(error)}`;
+      notice = `${t("notice_import_opportunities_failed")}: ${String(error)}`;
     }
   }
 </script>
@@ -221,36 +246,38 @@
   <section class="stagger grid grid-cols-1 gap-5 xl:grid-cols-12">
     <article class="glass-panel rounded-3xl p-5 xl:col-span-8">
       <div class="mb-4 flex items-center justify-between">
-        <h2 class="section-title">KPI Pulse</h2>
-        <span class="status-pill">Realtime</span>
+        <h2 class="section-title">{t("kpi_pulse")}</h2>
+        <span class="status-pill">{t("realtime")}</span>
       </div>
       {#if $kpiQuery.isSuccess}
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {#each $kpiQuery.data.data as item}
             <div class="glass-soft rounded-2xl p-4">
               <p class="meta-label">{item.metricKey}</p>
-              <p class="kpi-value mt-2 text-cyan-100">{item.metricValue.toLocaleString()}</p>
+              <p class="kpi-value mt-2 text-cyan-100">{formatNumber(item.metricValue)}</p>
             </div>
           {/each}
         </div>
       {:else}
-        <p class="text-sm text-slate-300">Loading KPI stream...</p>
+        <p class="text-sm text-slate-300">{t("loading_kpi")}</p>
       {/if}
     </article>
 
     <article class="glass-panel rounded-3xl p-5 xl:col-span-4">
-      <h2 class="section-title mb-4">Pipeline Stage</h2>
+      <h2 class="section-title mb-4">{t("pipeline_stage")}</h2>
       {#if $pipelineQuery.isSuccess}
         <ul class="space-y-2.5">
           {#each $pipelineQuery.data.data as row}
             <li class="glass-soft rounded-2xl p-3.5">
-              <p class="text-sm font-semibold text-slate-100">{row.stage}</p>
-              <p class="mt-1 text-xs text-slate-300">Deals {row.count} - Amount {row.totalAmount.toLocaleString()}</p>
+              <p class="text-sm font-semibold text-slate-100">{stageLabel(lang, row.stage)}</p>
+              <p class="mt-1 text-xs text-slate-300">
+                {t("deals")} {row.count} - {t("amount")} {formatNumber(row.totalAmount)}
+              </p>
             </li>
           {/each}
         </ul>
       {:else}
-        <p class="text-sm text-slate-300">Loading pipeline...</p>
+        <p class="text-sm text-slate-300">{t("loading_pipeline")}</p>
       {/if}
     </article>
   </section>
@@ -258,14 +285,14 @@
   <section class="stagger grid grid-cols-1 gap-5 xl:grid-cols-12">
     <article class="glass-panel rounded-3xl p-5 xl:col-span-6">
       <div class="mb-4 flex items-center justify-between">
-        <h2 class="section-title">Next Action Control</h2>
-        <span class="status-pill">Execution</span>
+        <h2 class="section-title">{t("next_action_control")}</h2>
+        <span class="status-pill">{t("execution")}</span>
       </div>
       <form class="mb-4 grid gap-2 md:grid-cols-3" on:submit|preventDefault={onUpdateNextAction}>
-        <input class="field" bind:value={nextActionForm.id} placeholder="Opportunity ID" />
+        <input class="field" bind:value={nextActionForm.id} placeholder={t("opportunity_id")} />
         <input class="field" bind:value={nextActionForm.nextActionAt} type="datetime-local" />
-        <input class="field" bind:value={nextActionForm.nextActionNote} placeholder="Next action note" />
-        <button class="btn-primary md:col-span-3" type="submit">Update Next Action</button>
+        <input class="field" bind:value={nextActionForm.nextActionNote} placeholder={t("next_action_note")} />
+        <button class="btn-primary md:col-span-3" type="submit">{t("update_next_action")}</button>
       </form>
       {#if $nextActionsQuery.isSuccess}
         <ul class="space-y-2.5">
@@ -273,7 +300,7 @@
             <li class="glass-soft rounded-2xl p-3.5">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <p class="text-sm font-semibold text-slate-100">{row.name}</p>
-                <span class="status-pill">{row.stage}</span>
+                <span class="status-pill">{stageLabel(lang, row.stage)}</span>
               </div>
               <p class="mt-1 text-xs text-slate-300">{row.accountName}</p>
               <p class="mt-1 text-xs text-cyan-100">{row.nextActionAt}</p>
@@ -285,7 +312,7 @@
     </article>
 
     <article class="glass-panel rounded-3xl p-5 xl:col-span-6">
-      <h2 class="section-title mb-4">Deal Health Radar</h2>
+      <h2 class="section-title mb-4">{t("deal_health_radar")}</h2>
       {#if $healthQuery.isSuccess}
         <ul class="space-y-2.5">
           {#each $healthQuery.data.data as row}
@@ -294,28 +321,30 @@
                 <p class="text-sm font-semibold text-slate-100">{row.name}</p>
                 <p class={`text-sm font-bold ${statusTone(row.healthScore)}`}>{row.healthScore}</p>
               </div>
-              <p class="mt-1 text-xs text-slate-300">{row.stage} - Last activity {row.lastActivityAt}</p>
-              <p class="mt-1 text-xs text-slate-400">Probability {row.probability}% - Amount {row.amount.toLocaleString()}</p>
+              <p class="mt-1 text-xs text-slate-300">{stageLabel(lang, row.stage)} - {t("last_activity")} {row.lastActivityAt}</p>
+              <p class="mt-1 text-xs text-slate-400">
+                {t("probability")} {row.probability}% - {t("amount")} {formatNumber(row.amount)}
+              </p>
             </li>
           {/each}
         </ul>
       {:else}
-        <p class="text-sm text-slate-300">Loading health radar...</p>
+        <p class="text-sm text-slate-300">{t("loading_health")}</p>
       {/if}
     </article>
   </section>
 
   <section class="stagger grid grid-cols-1 gap-5 xl:grid-cols-12">
     <article class="glass-panel rounded-3xl p-5 xl:col-span-4">
-      <h2 class="section-title mb-4">Forecast Matrix</h2>
+      <h2 class="section-title mb-4">{t("forecast_matrix")}</h2>
       {#if $forecastQuery.isSuccess}
         <ul class="space-y-2.5">
           {#each $forecastQuery.data.data as row}
             <li class="glass-soft rounded-2xl p-3.5 text-sm">
               <p class="font-semibold text-slate-100">{row.month}</p>
-              <p class="mt-1 text-xs text-slate-300">Deals {row.dealCount}</p>
-              <p class="mt-1 text-cyan-100">Pipeline {row.pipelineAmount.toLocaleString()}</p>
-              <p class="text-violet-200">Weighted {row.weightedAmount.toLocaleString()}</p>
+              <p class="mt-1 text-xs text-slate-300">{t("deals")} {row.dealCount}</p>
+              <p class="mt-1 text-cyan-100">{t("pipeline")} {formatNumber(row.pipelineAmount)}</p>
+              <p class="text-violet-200">{t("weighted")} {formatNumber(row.weightedAmount)}</p>
             </li>
           {/each}
         </ul>
@@ -323,14 +352,14 @@
     </article>
 
     <article class="glass-panel rounded-3xl p-5 xl:col-span-4">
-      <h2 class="section-title mb-4">Loss Reason Analytics</h2>
+      <h2 class="section-title mb-4">{t("loss_reason_analytics")}</h2>
       {#if $lossQuery.isSuccess}
         <ul class="space-y-2.5">
           {#each $lossQuery.data.data as row}
             <li class="glass-soft rounded-2xl p-3.5 text-sm">
-              <p class="font-semibold text-slate-100">{row.reason}</p>
-              <p class="mt-1 text-xs text-slate-300">Count {row.lostCount}</p>
-              <p class="mt-1 text-rose-200">Amount {row.lostAmount.toLocaleString()}</p>
+              <p class="font-semibold text-slate-100">{lossReasonLabel(lang, row.reason)}</p>
+              <p class="mt-1 text-xs text-slate-300">{t("count")} {row.lostCount}</p>
+              <p class="mt-1 text-rose-200">{t("amount")} {formatNumber(row.lostAmount)}</p>
             </li>
           {/each}
         </ul>
@@ -338,7 +367,7 @@
     </article>
 
     <article class="glass-panel rounded-3xl p-5 xl:col-span-4">
-      <h2 class="section-title mb-4">Duplicate Intelligence</h2>
+      <h2 class="section-title mb-4">{t("duplicate_intelligence")}</h2>
       {#if $duplicatesQuery.isSuccess}
         <ul class="space-y-2.5">
           {#each $duplicatesQuery.data.data as row}
@@ -354,10 +383,10 @@
 
   <section class="stagger grid grid-cols-1 gap-5 xl:grid-cols-12">
     <article class="glass-panel rounded-3xl p-5 xl:col-span-6">
-      <h2 class="section-title mb-4">Integration Hub</h2>
+      <h2 class="section-title mb-4">{t("integration_hub")}</h2>
       <form class="mb-4 grid gap-2 md:grid-cols-2" on:submit|preventDefault={onSaveIntegration}>
-        <input class="field" bind:value={integrationForm.userId} placeholder="User ID" />
-        <input class="field" bind:value={integrationForm.externalAccountId} placeholder="External account" />
+        <input class="field" bind:value={integrationForm.userId} placeholder={t("user_id")} />
+        <input class="field" bind:value={integrationForm.externalAccountId} placeholder={t("external_account")} />
         <select class="field" bind:value={integrationForm.provider}>
           <option value="google">google</option>
           <option value="microsoft">microsoft</option>
@@ -366,8 +395,8 @@
           <option value="calendar">calendar</option>
           <option value="email">email</option>
         </select>
-        <input class="field md:col-span-2" bind:value={integrationForm.scopes} placeholder="scope1,scope2" />
-        <button class="btn-primary md:col-span-2" type="submit">Save Integration</button>
+        <input class="field md:col-span-2" bind:value={integrationForm.scopes} placeholder={t("scopes")} />
+        <button class="btn-primary md:col-span-2" type="submit">{t("save_integration")}</button>
       </form>
 
       {#if $integrationsQuery.isSuccess}
@@ -376,7 +405,7 @@
             <li class="glass-soft rounded-2xl p-3.5 text-sm">
               <div class="flex items-center justify-between gap-2">
                 <p class="font-semibold text-slate-100">{row.provider} / {row.integrationType}</p>
-                <span class="status-pill">{row.status}</span>
+                <span class="status-pill">{integrationStatusLabel(lang, row.status)}</span>
               </div>
               <p class="mt-1 text-xs text-slate-300">{row.externalAccountId}</p>
             </li>
@@ -386,7 +415,7 @@
     </article>
 
     <article class="glass-panel rounded-3xl p-5 xl:col-span-6">
-      <h2 class="section-title mb-4">Integration Event Stream</h2>
+      <h2 class="section-title mb-4">{t("integration_event_stream")}</h2>
       <form class="mb-4 grid gap-2 md:grid-cols-2" on:submit|preventDefault={onCreateIntegrationEvent}>
         <select class="field" bind:value={eventForm.provider}>
           <option value="google">google</option>
@@ -396,9 +425,9 @@
           <option value="calendar">calendar</option>
           <option value="email">email</option>
         </select>
-        <input class="field md:col-span-2" bind:value={eventForm.eventType} placeholder="Event type" />
-        <input class="field md:col-span-2" bind:value={eventForm.occurredAt} placeholder="RFC3339 timestamp" />
-        <button class="btn-primary md:col-span-2" type="submit">Create Event</button>
+        <input class="field md:col-span-2" bind:value={eventForm.eventType} placeholder={t("event_type")} />
+        <input class="field md:col-span-2" bind:value={eventForm.occurredAt} placeholder={t("rfc3339_timestamp")} />
+        <button class="btn-primary md:col-span-2" type="submit">{t("create_event")}</button>
       </form>
 
       {#if $integrationEventsQuery.isSuccess}
@@ -416,14 +445,14 @@
 
   <section class="stagger grid grid-cols-1 gap-5 xl:grid-cols-12">
     <article class="glass-panel rounded-3xl p-5 xl:col-span-6">
-      <h2 class="section-title mb-4">Approval Workflow</h2>
+      <h2 class="section-title mb-4">{t("approval_workflow")}</h2>
       <form class="mb-4 grid gap-2 md:grid-cols-2" on:submit|preventDefault={onCreateApproval}>
-        <input class="field" bind:value={approvalForm.entityType} placeholder="Entity type" />
-        <input class="field" bind:value={approvalForm.entityId} placeholder="Entity ID" />
-        <input class="field" bind:value={approvalForm.requestedBy} placeholder="Requested by" />
-        <input class="field" bind:value={approvalForm.approverUserId} placeholder="Approver user ID" />
-        <input class="field md:col-span-2" bind:value={approvalForm.reason} placeholder="Reason" />
-        <button class="btn-primary md:col-span-2" type="submit">Create Approval Request</button>
+        <input class="field" bind:value={approvalForm.entityType} placeholder={t("entity_type")} />
+        <input class="field" bind:value={approvalForm.entityId} placeholder={t("entity_id")} />
+        <input class="field" bind:value={approvalForm.requestedBy} placeholder={t("requested_by")} />
+        <input class="field" bind:value={approvalForm.approverUserId} placeholder={t("approver_user_id")} />
+        <input class="field md:col-span-2" bind:value={approvalForm.reason} placeholder={t("reason")} />
+        <button class="btn-primary md:col-span-2" type="submit">{t("create_approval_request")}</button>
       </form>
 
       {#if $approvalsQuery.isSuccess}
@@ -432,17 +461,15 @@
             <li class="glass-soft rounded-2xl p-3.5 text-sm">
               <div class="flex items-center justify-between gap-2">
                 <p class="font-semibold text-slate-100">{row.entityType}</p>
-                <span class="status-pill">{row.status}</span>
+                <span class="status-pill">{approvalStatusLabel(lang, row.status)}</span>
               </div>
               <p class="mt-1 text-xs text-slate-300">{row.reason}</p>
               {#if row.status === "pending"}
                 <div class="mt-2 flex gap-2">
                   <button class="btn-primary !px-3 !py-1.5 !text-xs" type="button" on:click={() => onDecideApproval(row.id, "approved")}>
-                    Approve
+                    {t("approve")}
                   </button>
-                  <button class="btn-ghost" type="button" on:click={() => onDecideApproval(row.id, "rejected")}>
-                    Reject
-                  </button>
+                  <button class="btn-ghost" type="button" on:click={() => onDecideApproval(row.id, "rejected")}>{t("reject")}</button>
                 </div>
               {/if}
             </li>
@@ -452,28 +479,48 @@
     </article>
 
     <article class="glass-panel rounded-3xl p-5 xl:col-span-6">
-      <h2 class="section-title mb-4">CSV Operations</h2>
+      <h2 class="section-title mb-4">{t("csv_operations")}</h2>
       <div class="mb-4 flex flex-wrap gap-2">
         <button class="btn-ghost" type="button" on:click={() => downloadCSV("/export/accounts.csv", "accounts.csv")}>
-          Export Accounts CSV
+          {t("export_accounts_csv")}
         </button>
         <button class="btn-ghost" type="button" on:click={() => downloadCSV("/export/opportunities.csv", "opportunities.csv")}>
-          Export Opportunities CSV
+          {t("export_opportunities_csv")}
         </button>
       </div>
       <div class="grid gap-3 md:grid-cols-2">
         <div class="glass-soft rounded-2xl p-3.5">
-          <p class="mb-2 text-sm font-semibold text-slate-100">Import Accounts CSV</p>
-          <input class="field text-xs" type="file" accept=".csv,text/csv" on:change={(e) => (accountsCsv = (e.currentTarget as HTMLInputElement).files?.[0] ?? null)} />
-          <button class="btn-primary mt-2 w-full !py-2 text-xs disabled:opacity-50" type="button" on:click={onUploadAccounts} disabled={!accountsCsv}>
-            Upload Accounts
+          <p class="mb-2 text-sm font-semibold text-slate-100">{t("import_accounts_csv")}</p>
+          <input
+            class="field text-xs"
+            type="file"
+            accept=".csv,text/csv"
+            on:change={(e) => (accountsCsv = (e.currentTarget as HTMLInputElement).files?.[0] ?? null)}
+          />
+          <button
+            class="btn-primary mt-2 w-full !py-2 text-xs disabled:opacity-50"
+            type="button"
+            on:click={onUploadAccounts}
+            disabled={!accountsCsv}
+          >
+            {t("upload_accounts")}
           </button>
         </div>
         <div class="glass-soft rounded-2xl p-3.5">
-          <p class="mb-2 text-sm font-semibold text-slate-100">Import Opportunities CSV</p>
-          <input class="field text-xs" type="file" accept=".csv,text/csv" on:change={(e) => (opportunitiesCsv = (e.currentTarget as HTMLInputElement).files?.[0] ?? null)} />
-          <button class="btn-primary mt-2 w-full !py-2 text-xs disabled:opacity-50" type="button" on:click={onUploadOpportunities} disabled={!opportunitiesCsv}>
-            Upload Opportunities
+          <p class="mb-2 text-sm font-semibold text-slate-100">{t("import_opportunities_csv")}</p>
+          <input
+            class="field text-xs"
+            type="file"
+            accept=".csv,text/csv"
+            on:change={(e) => (opportunitiesCsv = (e.currentTarget as HTMLInputElement).files?.[0] ?? null)}
+          />
+          <button
+            class="btn-primary mt-2 w-full !py-2 text-xs disabled:opacity-50"
+            type="button"
+            on:click={onUploadOpportunities}
+            disabled={!opportunitiesCsv}
+          >
+            {t("upload_opportunities")}
           </button>
         </div>
       </div>
