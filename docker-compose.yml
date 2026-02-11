@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sfa-postgres
+    environment:
+      POSTGRES_DB: sfa
+      POSTGRES_USER: sfa
+      POSTGRES_PASSWORD: sfa
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sfa -d sfa"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sfa-backend
+    environment:
+      APP_ENV: docker
+      APP_PORT: 8080
+      APP_DATABASE_URL: postgresql://sfa:sfa@postgres:5432/sfa?sslmode=disable
+      APP_JWT_ISSUER: sfa-local
+      APP_JWT_AUDIENCE: sfa-web
+      APP_JWT_ACCESS_TTL_MINUTES: 15
+      APP_JWT_REFRESH_TTL_HOURS: 720
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sfa-frontend
+    environment:
+      PUBLIC_API_BASE_URL: http://localhost:8080/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:

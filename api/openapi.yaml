@@ -1,0 +1,952 @@
+openapi: 3.0.3
+info:
+  title: SFA API
+  version: 0.1.0
+  description: Multi-tenant SFA MVP API spec (REST).
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      security: []
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokenResponse' }
+  /auth/refresh:
+    post:
+      security: []
+      summary: Refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokenResponse' }
+  /auth/logout:
+    post:
+      summary: Logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LogoutRequest' }
+      responses:
+        '204': { description: No Content }
+  /auth/me:
+    get:
+      summary: Current user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+
+  /users:
+    get:
+      summary: List users
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - in: query
+          name: role
+          schema: { $ref: '#/components/schemas/Role' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserListResponse' }
+    post:
+      summary: Create user membership
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+
+  /users/{id}:
+    patch:
+      summary: Update user
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+
+  /accounts:
+    get:
+      summary: List accounts
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountListResponse' }
+    post:
+      summary: Create account
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAccountRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountResponse' }
+
+  /accounts/{id}:
+    patch:
+      summary: Update account
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAccountRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountResponse' }
+
+  /accounts/{id}/contacts:
+    get:
+      summary: List contacts
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContactListResponse' }
+    post:
+      summary: Create contact
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateContactRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContactResponse' }
+
+  /accounts/{id}/locations:
+    get:
+      summary: List locations
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocationListResponse' }
+    post:
+      summary: Create location
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLocationRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocationResponse' }
+
+  /opportunities:
+    get:
+      summary: List opportunities
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - in: query
+          name: stage
+          schema: { $ref: '#/components/schemas/OpportunityStage' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OpportunityListResponse' }
+    post:
+      summary: Create opportunity
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOpportunityRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OpportunityResponse' }
+
+  /opportunities/{id}:
+    patch:
+      summary: Update opportunity
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateOpportunityRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OpportunityResponse' }
+
+  /opportunities/{id}/activities:
+    get:
+      summary: List activities
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityListResponse' }
+    post:
+      summary: Create activity
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateActivityRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityResponse' }
+
+  /opportunities/{id}/quotes:
+    get:
+      summary: List quotes
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuoteListResponse' }
+    post:
+      summary: Create quote
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateQuoteRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuoteResponse' }
+
+  /opportunities/{id}/orders:
+    get:
+      summary: List orders
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderListResponse' }
+    post:
+      summary: Create order
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderResponse' }
+
+  /opportunities/{id}/lost:
+    post:
+      summary: Mark as lost
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MarkLostRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LossResponse' }
+
+  /dashboard/kpi:
+    get:
+      summary: KPI snapshot
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KpiResponse' }
+
+  /dashboard/pipeline:
+    get:
+      summary: Pipeline summary
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PipelineResponse' }
+
+  /audit-logs:
+    get:
+      summary: List audit logs (admin/manager)
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - in: query
+          name: action
+          schema: { $ref: '#/components/schemas/AuditAction' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditLogListResponse' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TenantHeader:
+      in: header
+      name: X-Tenant-ID
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      in: query
+      name: page
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      in: query
+      name: limit
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    IdPath:
+      in: path
+      name: id
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+    Role:
+      type: string
+      enum: [admin, manager, sales]
+    AccountStatus:
+      type: string
+      enum: [prospect, active, inactive]
+    OpportunityStage:
+      type: string
+      enum: [new_lead, qualified, proposal, negotiation, closed_won, closed_lost]
+    ActivityType:
+      type: string
+      enum: [meeting, call, email, note, task]
+    QuoteStatus:
+      type: string
+      enum: [draft, sent, accepted, rejected, expired]
+    OrderStatus:
+      type: string
+      enum: [pending, confirmed, cancelled, invoiced]
+    LossReason:
+      type: string
+      enum: [budget, competitor, timing, no_decision, other]
+    AuditAction:
+      type: string
+      enum: [create, update, delete, login]
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    AuthTokenResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        expiresIn: { type: integer }
+
+    CreateUserRequest:
+      type: object
+      required: [email, displayName, password, role]
+      properties:
+        email: { type: string, format: email }
+        displayName: { type: string }
+        password: { type: string, minLength: 8 }
+        role: { $ref: '#/components/schemas/Role' }
+    UpdateUserRequest:
+      type: object
+      properties:
+        displayName: { type: string }
+        isActive: { type: boolean }
+        role: { $ref: '#/components/schemas/Role' }
+
+    CreateAccountRequest:
+      type: object
+      required: [ownerUserId, name]
+      properties:
+        ownerUserId: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        industry: { type: string }
+        website: { type: string }
+        phone: { type: string }
+        status: { $ref: '#/components/schemas/AccountStatus' }
+        memo: { type: string }
+    UpdateAccountRequest:
+      type: object
+      properties:
+        ownerUserId: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        industry: { type: string }
+        website: { type: string }
+        phone: { type: string }
+        status: { $ref: '#/components/schemas/AccountStatus' }
+        memo: { type: string }
+
+    CreateContactRequest:
+      type: object
+      required: [ownerUserId, fullName]
+      properties:
+        locationId: { $ref: '#/components/schemas/UUID' }
+        ownerUserId: { $ref: '#/components/schemas/UUID' }
+        fullName: { type: string }
+        department: { type: string }
+        title: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        isPrimary: { type: boolean }
+        memo: { type: string }
+    CreateLocationRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        country: { type: string }
+        postalCode: { type: string }
+        prefecture: { type: string }
+        city: { type: string }
+        addressLine1: { type: string }
+        addressLine2: { type: string }
+
+    CreateOpportunityRequest:
+      type: object
+      required: [accountId, ownerUserId, name]
+      properties:
+        accountId: { $ref: '#/components/schemas/UUID' }
+        contactId: { $ref: '#/components/schemas/UUID' }
+        ownerUserId: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        stage: { $ref: '#/components/schemas/OpportunityStage' }
+        probability: { type: integer, minimum: 0, maximum: 100 }
+        amount: { type: number, format: double }
+        expectedCloseDate: { type: string, format: date }
+        memo: { type: string }
+    UpdateOpportunityRequest:
+      type: object
+      properties:
+        contactId: { $ref: '#/components/schemas/UUID' }
+        ownerUserId: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        stage: { $ref: '#/components/schemas/OpportunityStage' }
+        probability: { type: integer, minimum: 0, maximum: 100 }
+        amount: { type: number, format: double }
+        expectedCloseDate: { type: string, format: date }
+        memo: { type: string }
+    CreateActivityRequest:
+      type: object
+      required: [activityType, subject, activityAt]
+      properties:
+        activityType: { $ref: '#/components/schemas/ActivityType' }
+        subject: { type: string }
+        detail: { type: string }
+        activityAt: { type: string, format: date-time }
+    CreateQuoteRequest:
+      type: object
+      required: [quoteNo, amount]
+      properties:
+        quoteNo: { type: string }
+        amount: { type: number, format: double }
+        status: { $ref: '#/components/schemas/QuoteStatus' }
+        issuedOn: { type: string, format: date }
+        validUntil: { type: string, format: date }
+        note: { type: string }
+    CreateOrderRequest:
+      type: object
+      required: [orderNo, amount]
+      properties:
+        orderNo: { type: string }
+        amount: { type: number, format: double }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        orderedOn: { type: string, format: date }
+        note: { type: string }
+    MarkLostRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { $ref: '#/components/schemas/LossReason' }
+        detail: { type: string }
+        lostAt: { type: string, format: date-time }
+
+    PageMeta:
+      type: object
+      required: [page, limit, total]
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+
+    Membership:
+      type: object
+      required: [tenantId, role, isActive]
+      properties:
+        tenantId: { $ref: '#/components/schemas/UUID' }
+        role: { $ref: '#/components/schemas/Role' }
+        isActive: { type: boolean }
+
+    User:
+      type: object
+      required: [id, email, displayName, isActive, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        email: { type: string, format: email }
+        displayName: { type: string }
+        isActive: { type: boolean }
+        role: { $ref: '#/components/schemas/Role' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Account:
+      type: object
+      required: [id, ownerUserId, name, status, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        ownerUserId: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        industry: { type: string }
+        website: { type: string }
+        phone: { type: string }
+        status: { $ref: '#/components/schemas/AccountStatus' }
+        memo: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Contact:
+      type: object
+      required: [id, accountId, ownerUserId, fullName, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        accountId: { $ref: '#/components/schemas/UUID' }
+        locationId: { $ref: '#/components/schemas/UUID' }
+        ownerUserId: { $ref: '#/components/schemas/UUID' }
+        fullName: { type: string }
+        department: { type: string }
+        title: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        isPrimary: { type: boolean }
+        memo: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Location:
+      type: object
+      required: [id, accountId, name, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        accountId: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        country: { type: string }
+        postalCode: { type: string }
+        prefecture: { type: string }
+        city: { type: string }
+        addressLine1: { type: string }
+        addressLine2: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Opportunity:
+      type: object
+      required: [id, accountId, ownerUserId, name, stage, probability, amount, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        accountId: { $ref: '#/components/schemas/UUID' }
+        contactId: { $ref: '#/components/schemas/UUID' }
+        ownerUserId: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        stage: { $ref: '#/components/schemas/OpportunityStage' }
+        probability: { type: integer, minimum: 0, maximum: 100 }
+        amount: { type: number, format: double }
+        expectedCloseDate: { type: string, format: date }
+        closedAt: { type: string, format: date-time }
+        memo: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Activity:
+      type: object
+      required: [id, opportunityId, activityType, subject, activityAt, createdAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        opportunityId: { $ref: '#/components/schemas/UUID' }
+        activityType: { $ref: '#/components/schemas/ActivityType' }
+        subject: { type: string }
+        detail: { type: string }
+        activityAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    Quote:
+      type: object
+      required: [id, opportunityId, quoteNo, amount, status, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        opportunityId: { $ref: '#/components/schemas/UUID' }
+        quoteNo: { type: string }
+        amount: { type: number, format: double }
+        status: { $ref: '#/components/schemas/QuoteStatus' }
+        issuedOn: { type: string, format: date }
+        validUntil: { type: string, format: date }
+        note: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Order:
+      type: object
+      required: [id, opportunityId, orderNo, amount, status, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        opportunityId: { $ref: '#/components/schemas/UUID' }
+        orderNo: { type: string }
+        amount: { type: number, format: double }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        orderedOn: { type: string, format: date }
+        note: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    LossRecord:
+      type: object
+      required: [id, opportunityId, reason, lostAt, createdAt]
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        opportunityId: { $ref: '#/components/schemas/UUID' }
+        reason: { $ref: '#/components/schemas/LossReason' }
+        detail: { type: string }
+        lostAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    KpiItem:
+      type: object
+      required: [metricKey, metricValue]
+      properties:
+        metricKey: { type: string }
+        metricValue: { type: number, format: double }
+        dimensions:
+          type: object
+          additionalProperties: true
+
+    PipelineStage:
+      type: object
+      required: [stage, count, totalAmount]
+      properties:
+        stage: { $ref: '#/components/schemas/OpportunityStage' }
+        count: { type: integer }
+        totalAmount: { type: number, format: double }
+
+    AuditLog:
+      type: object
+      required: [id, action, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        actorUserId: { $ref: '#/components/schemas/UUID' }
+        action: { $ref: '#/components/schemas/AuditAction' }
+        entityType: { type: string }
+        entityId: { $ref: '#/components/schemas/UUID' }
+        metadata:
+          type: object
+          additionalProperties: true
+        ipAddress: { type: string }
+        userAgent: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    MeResponse:
+      type: object
+      required: [user, memberships]
+      properties:
+        user:
+          type: object
+          required: [id, email, displayName, isActive]
+          properties:
+            id: { $ref: '#/components/schemas/UUID' }
+            email: { type: string, format: email }
+            displayName: { type: string }
+            isActive: { type: boolean }
+        memberships:
+          type: array
+          items: { $ref: '#/components/schemas/Membership' }
+
+    UserResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/User' }
+    UserListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/User' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+
+    AccountResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Account' }
+    AccountListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Account' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+
+    ContactResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Contact' }
+    ContactListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Contact' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+
+    LocationResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Location' }
+    LocationListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Location' }
+
+    OpportunityResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Opportunity' }
+    OpportunityListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Opportunity' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+
+    ActivityResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Activity' }
+    ActivityListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Activity' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+
+    QuoteResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Quote' }
+    QuoteListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Quote' }
+
+    OrderResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Order' }
+    OrderListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Order' }
+
+    LossResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/LossRecord' }
+
+    KpiResponse:
+      type: object
+      required: [snapshotAt, data]
+      properties:
+        snapshotAt: { type: string, format: date-time }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/KpiItem' }
+
+    PipelineResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/PipelineStage' }
+
+    AuditLogListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/AuditLog' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
